@@ -70,18 +70,14 @@ td:first-child,th:first-child{text-align:left}
 <div class="grid">
   <div class="panel">
     <label>Plant</label>
-    <select id="plant"><option>CD</option><option>RP</option></select>
+    <select id="plant"><option value="" disabled selected>Select plant…</option><option>CD</option><option>RP</option></select>
 
-    <label>Machine</label>
-    <select id="machine">
-      <option>C1</option><option>C2</option><option>C3-Q</option><option>C3-R</option>
-      <option>C4-S</option><option>C4-T</option><option>Nidan 1 kg</option>
-      <option>Pakona 1 - V</option><option>Pakona 1 - U</option>
-      <option>Pakona 2 - Y</option><option>Pakona 2 - Z</option>
-    </select>
+    <label>Filling line</label>
+    <select id="machine"><option value="" disabled selected>Select plant first…</option></select>
 
     <label>SKU (target fill weight)</label>
     <select id="sku">
+      <option value="" disabled selected>Select SKU…</option>
       <option value="60">60 g</option><option value="200">200 g</option>
       <option value="500">500 g</option><option value="1000">1 kg</option>
       <option value="2000">2 kg</option>
@@ -135,9 +131,16 @@ const $=id=>document.getElementById(id);
 const amin=a=>{let m=Infinity;for(const v of a)if(v<m)m=v;return m;};
 const amax=a=>{let m=-Infinity;for(const v of a)if(v>m)m=v;return m;};
 let iChart,hChart;
+const LINES={CD:['C1','C2','C3-Q','C3-R','C4-S','C4-T'],
+             RP:['Nidan 1 kg','Pakona 1 - V','Pakona 1 - U','Pakona 2 - Y','Pakona 2 - Z']};
+function fillLines(){
+  const pl=$('plant').value, m=$('machine');
+  m.innerHTML='<option value="" disabled selected>'+(pl?'Select filling line…':'Select plant first…')+'</option>';
+  (LINES[pl]||[]).forEach(l=>{const o=document.createElement('option');o.textContent=l;m.appendChild(o);});
+}
 const key=()=> `spc:${$('plant').value}:${$('machine').value}:${$('sku').value}`;
 
-function save(){localStorage.setItem(key(),JSON.stringify({lcl:$('lcl').value,ucl:$('ucl').value}));}
+function save(){if(!$('plant').value||!$('machine').value||!$('sku').value)return;localStorage.setItem(key(),JSON.stringify({lcl:$('lcl').value,ucl:$('ucl').value}));}
 function load(){
   const s=localStorage.getItem(key());
   if(s){const o=JSON.parse(s);$('lcl').value=o.lcl||'';$('ucl').value=o.ucl||'';}
@@ -156,6 +159,11 @@ function analyze(){
   save();
   let x=parseData();
   const lsl=parseFloat($('lcl').value), usl=parseFloat($('ucl').value);
+  if(!$('plant').value||!$('machine').value||!$('sku').value){
+    $('kpis').innerHTML='<div class="kpi"><div class="v">—</div><div class="l">Select plant, filling line & SKU</div></div>';
+    $('stats').innerHTML='';$('reg').innerHTML='';$('outInfo').innerHTML='';
+    drawCharts([],NaN,NaN,NaN,NaN,NaN);return;
+  }
   /* ---- Outlier detection (Tukey IQR method) ---- */
   window._out=null;
   if(x.length>=4){
@@ -423,7 +431,7 @@ $('colPick').onchange=loadColumn;
 
 /* ---------- PDF report (in-page print, no popup) ---------- */
 $('lotN').addEventListener('input',analyze);
-$('plant').onchange=load;
+$('plant').onchange=()=>{fillLines();load();};
 $('pdf').onclick=()=>{
   const r=window._res;
   if(!r){alert('Analyze data first.');return;}
@@ -477,6 +485,7 @@ $('pdf').onclick=()=>{
     },150));
 };
 
+fillLines();
 load();
 </script>
 </body>
