@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filling Line Capability — SPC Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b23; --panel2:#1c2330; --line:#2a3342;
+  --ink:#e8edf4; --dim:#8a97a8; --accent:#4fd1c5; --amber:#f0b429;
+  --red:#ef5b5b; --green:#3ecf8e; --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 'Segoe UI',system-ui,sans-serif;padding:20px}
+h1{font-size:18px;letter-spacing:.04em;text-transform:uppercase}
+h1 span{color:var(--accent)}
+.sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:290px 1fr;gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:12px 0 4px}
+select,input,textarea,button{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:8px 10px;font-size:13px}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--accent)}
+textarea{font-family:var(--mono);min-height:110px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{cursor:pointer;font-weight:600}
+.btn-acc{background:var(--accent);color:#08302c;border:none;margin-top:14px}
+.btn-ghost{background:transparent;margin-top:8px;color:var(--dim)}
+.btn-ghost:hover{color:var(--red);border-color:var(--red)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi .v{font-family:var(--mono);font-size:22px;font-weight:700}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+.ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+.charts{display:grid;gap:16px}
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.chart-box h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:8px}
+.badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);margin-left:8px}
+.note{font-size:12px;color:var(--dim);margin-top:10px}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:8px}
+td,th{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--dim);font-weight:600;text-transform:uppercase;font-size:10px}
+td:first-child,th:first-child{text-align:left}
+.viol{color:var(--red)}
+/* --- print report --- */
+#report{display:none}
+@media print{
+  body.printing>*:not(#report){display:none!important}
+  body.printing{background:#fff;padding:0}
+  body.printing #report{display:block;font:12px/1.5 'Segoe UI',Arial,sans-serif;color:#1a222c;margin:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #report h1{font-size:19px;border-bottom:3px solid #0e7c6f;padding-bottom:6px;text-transform:none;letter-spacing:0}
+  #report h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#0e7c6f;margin:18px 0 6px}
+  #report table{border-collapse:collapse;width:100%;font-size:12px;font-family:'Segoe UI',Arial,sans-serif}
+  #report td,#report th{border:1px solid #cdd5df;padding:6px 10px;text-align:left;color:#1a222c}
+  #report th{background:#eef2f6}
+  #report .meta td{border:none;padding:2px 14px 2px 0;color:#4a5666}
+  #report img{width:100%;border:1px solid #cdd5df;border-radius:4px;margin:4px 0 10px}
+  #report .verdict{padding:10px 14px;border-radius:6px;font-weight:700;margin:10px 0}
+  #report .ok{background:#e2f7ee;color:#0d6b45}#report .warn{background:#fdf3d7;color:#8a6210}#report .bad{background:#fde3e3;color:#a12525}
+  #report .foot{margin-top:22px;font-size:10px;color:#7a8696;border-top:1px solid #cdd5df;padding-top:8px}
+}
+</style>
+</head>
+<body>
+<h1>Filling Line <span>Capability</span> Dashboard</h1>
+<div class="sub">Detergent powder filling — SPC / Cp·Cpk analysis · data saved in browser (localStorage)</div>
+
+<div class="grid">
+  <div class="panel">
+    <label>Plant</label>
+    <select id="plant"><option>CD</option><option>RP</option></select>
+
+    <label>Machine</label>
+    <select id="machine">
+      <option>C1</option><option>C2</option><option>C3-Q</option><option>C3-R</option>
+      <option>C4-S</option><option>C4-T</option><option>Nidan 1 kg</option>
+      <option>Pakona 1 - V</option><option>Pakona 1 - U</option>
+      <option>Pakona 2 - Y</option><option>Pakona 2 - Z</option>
+    </select>
+
+    <label>SKU (target fill weight)</label>
+    <select id="sku">
+      <option value="60">60 g</option><option value="200">200 g</option>
+      <option value="500">500 g</option><option value="1000">1 kg</option>
+      <option value="2000">2 kg</option>
+    </select>
+
+    <div class="row2">
+      <div><label>LCL / LSL (g)</label><input type="number" step="any" id="lcl" placeholder="e.g. 59.0"></div>
+      <div><label>UCL / USL (g)</label><input type="number" step="any" id="ucl" placeholder="e.g. 63.0"></div>
+    </div>
+
+    <div class="row2" style="display:none">
+      <div><label>Inspection lot size N (optional)</label><input type="number" id="lotN" placeholder="blank = use sample n"></div>
+      <div><label>SCF (auto from table)</label><input type="text" id="scfShow" disabled></div>
+    </div>
+
+    <label>Upload Excel / CSV with weight data</label>
+    <input type="file" id="xl" accept=".xlsx,.xls,.csv">
+    <div id="colPickWrap" style="display:none">
+      <label>Column containing weights</label>
+      <select id="colPick"></select>
+    </div>
+
+    <label>Weight readings (g) — paste, type, or loaded from Excel</label>
+    <textarea id="data" placeholder="60.2 61.1 60.8&#10;59.9, 60.5 ..."></textarea>
+
+    <button class="btn-acc" id="analyze">Analyze</button>
+    <button class="btn-acc" id="pdf" style="background:#f0b429;color:#33270a">Download PDF report</button>
+    <button class="btn-ghost" id="clear">Clear saved data for this machine + SKU</button>
+    <div class="note">Data, limits, and readings are auto-saved per machine + SKU combination.</div>
+  </div>
+
+  <div>
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="chart-box"><h3>Individuals control chart (I-chart)<span class="badge" id="badge-n"></span></h3><canvas id="ichart" height="110"></canvas></div>
+      <div class="chart-box"><h3>Weight distribution vs spec limits</h3><canvas id="hist" height="110"></canvas></div>
+      <div class="chart-box"><h3>Regulatory lot decision (average system, SCF)</h3><div id="reg"></div></div>
+      <div class="chart-box"><h3>Statistics</h3><div id="stats"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="report"></div>
+<script>
+const $=id=>document.getElementById(id);
+let iChart,hChart;
+const key=()=> `spc:${$('plant').value}:${$('machine').value}:${$('sku').value}`;
+
+function save(){localStorage.setItem(key(),JSON.stringify({lcl:$('lcl').value,ucl:$('ucl').value}));}
+function load(){
+  const s=localStorage.getItem(key());
+  if(s){const o=JSON.parse(s);$('lcl').value=o.lcl||'';$('ucl').value=o.ucl||'';}
+  else{$('lcl').value='';$('ucl').value='';}
+  // readings always start fresh on selection change — never auto-filled
+  $('data').value=''; sheetRows=null; $('xl').value=''; $('colPickWrap').style.display='none';
+  analyze();
+}
+function parseData(){return $('data').value.split(/[\s,;]+/).map(Number).filter(v=>!isNaN(v)&&v>0);}
+
+function analyze(){
+  save();
+  const x=parseData(), lsl=parseFloat($('lcl').value), usl=parseFloat($('ucl').value);
+  const kp=$('kpis'), st=$('stats');
+  if(x.length<2){kp.innerHTML='<div class="kpi"><div class="v">—</div><div class="l">Enter at least 2 readings</div></div>';st.innerHTML='';$('reg').innerHTML='';$('scfShow').value='';drawCharts([],NaN,NaN,NaN,NaN,NaN);return;}
+  const n=x.length, mean=x.reduce((a,b)=>a+b)/n;
+  const sd=Math.sqrt(x.reduce((a,b)=>a+(b-mean)**2,0)/(n-1));
+  // moving range for within-subgroup sigma
+  let mrSum=0;for(let i=1;i<n;i++)mrSum+=Math.abs(x[i]-x[i-1]);
+  const mrBar=mrSum/(n-1), sigmaW=mrBar/1.128;
+  const hasSpec=!isNaN(lsl)&&!isNaN(usl);
+  let cp=NaN,cpk=NaN,pp=NaN,ppk=NaN,oos=0;
+  if(hasSpec){
+    cp=(usl-lsl)/(6*sigmaW); cpk=Math.min((usl-mean)/(3*sigmaW),(mean-lsl)/(3*sigmaW));
+    pp=(usl-lsl)/(6*sd); ppk=Math.min((usl-mean)/(3*sd),(mean-lsl)/(3*sd));
+    oos=x.filter(v=>v<lsl||v>usl).length;
+  }
+  window._res={n,mean,sd,sigmaW,cp,cpk,pp,ppk,oos,lsl,usl,min:Math.min(...x),max:Math.max(...x)};
+
+  /* ---- Regulatory decision (average system with SCF) ---- */
+  const scfTable=[ // [maxN, sampleSize, SCF, allowedT1] ; NA row handled separately
+    [40,32,0.22,1],[60,35,0.30,1],[80,47,0.25,2],[100,49,0.28,2],
+    [200,64,0.27,3],[300,67,0.29,3],[400,81,0.26,4],[500,81,0.27,4],
+    [30000,98,0.25,5],[Infinity,98,0.27,5]];
+  const tneFor=q=> q<=100?4.5 : q<=200?q*0.045 : q<=300?9 : q<=500?q*0.03 : q<=1000?15 : q*0.015; // g, legal metrology TNE
+  const N=parseInt($('lotN').value), qnom=parseFloat($('sku').value);
+  const reg=$('reg');
+  window._reg=null;
+  if(!N||N<1){
+    // No lot size: derive SCF row from the actual sample size in the uploaded data
+    if(n<=20){ $('scfShow').value='n ≤ 20 — 100% inspection basis';
+      const tne=tneFor(qnom), t1=x.filter(v=>v<qnom-tne).length;
+      const pass=t1===0 && mean>=qnom;
+      reg.innerHTML=regHTML(pass,`Sample n = ${n} (from data). Treated as 100% inspection. Allowed T1: 0 · found: ${t1}. Mean ${mean.toFixed(2)} g vs nominal ${qnom} g.<br><span style="opacity:.7">Tip: enter lot size N to apply the exact table row.</span>`);
+      window._reg={mode:'100% (by sample)',pass,t1,allowed:0,tne};
+    } else {
+      // pick table row whose sample size is closest to (and covers) actual n
+      let row=scfTable[0];
+      for(const r of scfTable){ if(r[1]<=n) row=r; }
+      const [,nReq,SCF,allowedT1]=row;
+      $('scfShow').value=SCF.toFixed(2)+`  (from data n=${n})`;
+      const eave=mean-qnom, crit=qnom-SCF*sd, meanPass=mean>=crit;
+      const tne=tneFor(qnom), t1=x.filter(v=>v<qnom-tne).length, t1Pass=t1<=allowedT1;
+      const pass=meanPass&&t1Pass;
+      reg.innerHTML=regHTML(pass,
+        `Sample n = ${n} taken from data → matched table row (n = ${nReq}, SCF = ${SCF.toFixed(2)}, allowed T1 = ${allowedT1})<br>
+         Criterion: q<sub>ave</sub> ≥ q<sub>nom</sub> − SCF·s → ${mean.toFixed(3)} ${meanPass?'≥':'<'} ${crit.toFixed(3)} g
+         &nbsp;(e<sub>ave</sub>/s + SCF = ${(eave/sd+SCF).toFixed(3)} ${meanPass?'≥ 0 ✓':'< 0 ✗'})<br>
+         T1 errors (below q<sub>nom</sub> − TNE ${tne.toFixed(1)} g = ${(qnom-tne).toFixed(1)} g): ${t1} of ${allowedT1} allowed ${t1Pass?'✓':'✗'}<br>
+         <span style="opacity:.7">Enter lot size N to override with the exact lot-based row.</span>`);
+      window._reg={mode:'SCF (by sample n)',pass,SCF,nReq,crit,eave,t1,allowed:allowedT1,tne,meanPass,t1Pass};
+    }
+  }
+  else if(N<=20){ $('scfShow').value='NA — 100% inspection';
+    const tne=tneFor(qnom), t1=x.filter(v=>v<qnom-tne).length;
+    const pass=t1===0 && mean>=qnom;
+    reg.innerHTML=regHTML(pass,`N ≤ 20 → 100% inspection. Allowed T1 errors: 0 · found: ${t1}. Mean ${mean.toFixed(2)} g vs nominal ${qnom} g.`);
+    window._reg={mode:'100%',pass,t1,allowed:0,tne};
+  } else {
+    const row=scfTable.find(r=>N<=r[0]);
+    const [,nReq,SCF,allowedT1]=row;
+    $('scfShow').value=SCF.toFixed(2)+`  (n=${nReq})`;
+    const eave=mean-qnom;                       // e_ave = Σe_i / n
+    const crit=qnom - SCF*sd;                   // reject if q_ave < q_nom − SCF·s
+    const meanPass= mean >= crit;               // equivalently e_ave/s + SCF ≥ 0
+    const tne=tneFor(qnom), t1=x.filter(v=>v<qnom-tne).length;
+    const t1Pass=t1<=allowedT1;
+    const pass=meanPass&&t1Pass;
+    reg.innerHTML=regHTML(pass,
+      `SCF = ${SCF.toFixed(2)} (required sample n = ${nReq}, actual n = ${n}${n<nReq?' ⚠ below required':''})<br>
+       Criterion: q<sub>ave</sub> ≥ q<sub>nom</sub> − SCF·s → ${mean.toFixed(3)} ${meanPass?'≥':'<'} ${crit.toFixed(3)} g
+       &nbsp;(e<sub>ave</sub>/s + SCF = ${(eave/sd+SCF).toFixed(3)} ${meanPass?'≥ 0 ✓':'< 0 ✗'})<br>
+       T1 errors (below q<sub>nom</sub> − TNE ${tne.toFixed(1)} g = ${(qnom-tne).toFixed(1)} g): ${t1} of ${allowedT1} allowed ${t1Pass?'✓':'✗'}`);
+    window._reg={mode:'SCF',pass,SCF,nReq,crit,eave,t1,allowed:allowedT1,tne,meanPass,t1Pass};
+  }
+  function regHTML(pass,detail){
+    return `<div style="padding:10px 14px;border-radius:8px;font-weight:700;font-size:15px;margin-bottom:8px;
+      background:${pass?'rgba(62,207,142,.12)':'rgba(239,91,91,.12)'};color:${pass?'var(--green)':'var(--red)'};
+      border:1px solid ${pass?'var(--green)':'var(--red)'}">${pass?'✔ RELEASE the lot':'✖ HOLD / REJECT the lot'}</div>
+      <div class="note">${detail}</div>`;
+  }
+
+  const cls=v=>isNaN(v)?'':v>=1.33?'ok':v>=1.0?'warn':'bad';
+  const f=(v,d=3)=>isNaN(v)?'—':v.toFixed(d);
+  kp.innerHTML=`
+    <div class="kpi"><div class="v">${f(mean,2)}</div><div class="l">Mean (g)</div></div>
+    <div class="kpi"><div class="v">${f(sd,3)}</div><div class="l">Std Dev (overall)</div></div>
+    <div class="kpi"><div class="v ${cls(cp)}">${f(cp,2)}</div><div class="l">Cp</div></div>
+    <div class="kpi"><div class="v ${cls(cpk)}">${f(cpk,2)}</div><div class="l">Cpk</div></div>
+    <div class="kpi"><div class="v ${cls(pp)}">${f(pp,2)}</div><div class="l">Pp</div></div>
+    <div class="kpi"><div class="v ${cls(ppk)}">${f(ppk,2)}</div><div class="l">Ppk</div></div>
+    <div class="kpi"><div class="v ${oos?'bad':'ok'}">${hasSpec?oos:'—'}</div><div class="l">Out of spec</div></div>`;
+  const min=Math.min(...x),max=Math.max(...x);
+  // Normal CDF + Minitab-style Z / PPM metrics
+  const phi=z=>{const t=1/(1+0.2316419*Math.abs(z));const d=0.3989423*Math.exp(-z*z/2);
+    let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;};
+  let ppmRows='';
+  if(hasSpec){
+    const obsL=1e6*x.filter(v=>v<lsl).length/n, obsU=1e6*x.filter(v=>v>usl).length/n;
+    const eWL=1e6*phi((lsl-mean)/sigmaW), eWU=1e6*(1-phi((usl-mean)/sigmaW));
+    const eOL=1e6*phi((lsl-mean)/sd), eOU=1e6*(1-phi((usl-mean)/sd));
+    const zLW=(mean-lsl)/sigmaW, zUW=(usl-mean)/sigmaW, zLO=(mean-lsl)/sd, zUO=(usl-mean)/sd;
+    const inv=p=>{ // inverse normal for Z.bench
+      if(p<=0)return -8;if(p>=1)return 8;
+      const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+      const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+      const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+      const d2=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+      const pl=0.02425;let q,r2;
+      if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d2[0]*q+d2[1])*q+d2[2])*q+d2[3])*q+1);}
+      if(p>1-pl){q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d2[0]*q+d2[1])*q+d2[2])*q+d2[3])*q+1);}
+      q=p-0.5;r2=q*q;return (((((a[0]*r2+a[1])*r2+a[2])*r2+a[3])*r2+a[4])*r2+a[5])*q/(((((b[0]*r2+b[1])*r2+b[2])*r2+b[3])*r2+b[4])*r2+1);};
+    const zbW=inv(1-(eWL+eWU)/1e6), zbO=inv(1-(eOL+eOU)/1e6);
+    window._ppm={obsL,obsU,eWL,eWU,eOL,eOU,zLW,zUW,zLO,zUO,zbW,zbO};
+    const fp=v=>v.toFixed(2);
+    ppmRows=`
+    <table style="margin-top:12px">
+      <tr><th></th><th>Z.Bench</th><th>Z.LSL</th><th>Z.USL</th><th>Index</th></tr>
+      <tr><td>Within</td><td>${fp(zbW)}</td><td>${fp(zLW)}</td><td>${fp(zUW)}</td><td>Cpk ${f(cpk,2)}</td></tr>
+      <tr><td>Overall</td><td>${fp(zbO)}</td><td>${fp(zLO)}</td><td>${fp(zUO)}</td><td>Ppk ${f(ppk,2)}</td></tr>
+    </table>
+    <table style="margin-top:12px">
+      <tr><th>PPM</th><th>&lt; LSL</th><th>&gt; USL</th><th>Total</th></tr>
+      <tr><td>Observed</td><td>${fp(obsL)}</td><td>${fp(obsU)}</td><td>${fp(obsL+obsU)}</td></tr>
+      <tr><td>Exp. Within</td><td>${fp(eWL)}</td><td>${fp(eWU)}</td><td>${fp(eWL+eWU)}</td></tr>
+      <tr><td>Exp. Overall</td><td>${fp(eOL)}</td><td>${fp(eOU)}</td><td>${fp(eOL+eOU)}</td></tr>
+    </table>`;
+  } else window._ppm=null;
+  const verdict=isNaN(cpk)?'Enter UCL & LCL for capability indices.':cpk>=1.33?'Process is capable (Cpk ≥ 1.33).':cpk>=1.0?'Marginally capable — improvement recommended.':'NOT capable — investigate centering / variation.';
+  st.innerHTML=`<table>
+    <tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr>
+    <tr><td>n</td><td>${n}</td><td>Range</td><td>${f(max-min,2)}</td></tr>
+    <tr><td>Min</td><td>${f(min,2)}</td><td>Max</td><td>${f(max,2)}</td></tr>
+    <tr><td>σ within (MR/1.128)</td><td>${f(sigmaW,4)}</td><td>σ overall</td><td>${f(sd,4)}</td></tr>
+    <tr><td>Est. mean give-away vs target</td><td>${f(mean-parseFloat($('sku').value),2)} g</td><td>% out of spec</td><td>${hasSpec?f(100*oos/n,1)+'%':'—'}</td></tr>
+  </table>${ppmRows}<div class="note ${cls(cpk)}">${verdict}</div>`;
+  drawCharts(x,mean,sigmaW,lsl,usl,sd);
+}
+
+function drawCharts(x,mean,sw,lsl,usl,sd){
+  const labels=x.map((_,i)=>i+1);
+  const uclN=mean+3*sw, lclN=mean-3*sw;
+  $('badge-n').textContent=x.length?`n=${x.length}`:'';
+  const ptColor=x.map(v=>(v>uclN||v<lclN||(!isNaN(usl)&&v>usl)||(!isNaN(lsl)&&v<lsl))?'#ef5b5b':'#4fd1c5');
+  const line=(v,c,l)=>({label:l,data:labels.map(()=>v),borderColor:c,borderWidth:1,borderDash:[6,4],pointRadius:0,fill:false});
+  if(iChart)iChart.destroy();
+  iChart=new Chart($('ichart'),{type:'line',data:{labels,datasets:[
+    {label:'Weight',data:x,borderColor:'#4fd1c5',backgroundColor:ptColor,pointBackgroundColor:ptColor,pointRadius:4,borderWidth:1.5,tension:0},
+    ...(x.length?[line(mean,'#8a97a8','Mean'),line(uclN,'#f0b429','UCL(3σ)'),line(lclN,'#f0b429','LCL(3σ)')]:[]),
+    ...(!isNaN(usl)?[line(usl,'#ef5b5b','USL')]:[]),
+    ...(!isNaN(lsl)?[line(lsl,'#ef5b5b','LSL')]:[])
+  ]},options:{plugins:{legend:{labels:{color:'#8a97a8',boxWidth:12,font:{size:10}}}},scales:{x:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}},y:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}}}}});
+  // histogram
+  if(hChart)hChart.destroy();
+  if(!x.length){hChart=null;return;}
+  // Minitab-style: linear x-axis, smooth Within (red) + Overall (dashed) curves, LSL/USL red dashed lines
+  const dataMin=Math.min(...x), dataMax=Math.max(...x);
+  const span0=Math.min(dataMin,isNaN(lsl)?dataMin:lsl), span1=Math.max(dataMax,isNaN(usl)?dataMax:usl);
+  const pad=(span1-span0)*0.08||1, lo=span0-pad, hi=span1+pad;
+  const bins=Math.max(8,Math.min(25,Math.ceil(Math.sqrt(x.length)*1.5)));
+  const w=(dataMax-dataMin)/bins||1, counts=Array(bins).fill(0);
+  x.forEach(v=>counts[Math.min(bins-1,Math.floor((v-dataMin)/w))]++);
+  const bars=counts.map((c,i)=>({x:dataMin+w*(i+0.5),y:c}));
+  const pdf=(v,s)=> s>0 ? x.length*w*Math.exp(-((v-mean)**2)/(2*s*s))/(s*Math.sqrt(2*Math.PI)) : 0;
+  const curve=s=>{const pts=[];for(let i=0;i<=140;i++){const v=lo+(hi-lo)*i/140;pts.push({x:v,y:pdf(v,s)});}return pts;};
+  const peak=Math.max(...counts, pdf(mean,sw)||0, pdf(mean,sd)||0)*1.15;
+  const vline=(v,label)=>isNaN(v)?[]:[{label,data:[{x:v,y:0},{x:v,y:peak}],borderColor:'#ef5b5b',borderWidth:1.5,borderDash:[7,4],pointRadius:0,showLine:true,order:0}];
+  hChart=new Chart($('hist'),{type:'scatter',data:{datasets:[
+      {type:'bar',label:'Data',data:bars,backgroundColor:'rgba(138,151,168,.45)',borderColor:'#8a97a8',borderWidth:1,barThickness:'flex',categoryPercentage:1,barPercentage:1,order:3},
+      {label:'Within',data:curve(sw),borderColor:'#ef5b5b',borderWidth:2,pointRadius:0,showLine:true,tension:0.3,order:1},
+      {label:'Overall',data:curve(sd),borderColor:'#e8edf4',borderWidth:2,borderDash:[8,5],pointRadius:0,showLine:true,tension:0.3,order:2},
+      ...vline(lsl,'LSL'),...vline(usl,'USL')
+    ]},
+    options:{plugins:{legend:{labels:{color:'#8a97a8',boxWidth:14,font:{size:10},filter:i=>['Within','Overall','LSL','USL'].includes(i.text)}}},
+      scales:{x:{type:'linear',min:lo,max:hi,ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}},
+              y:{min:0,ticks:{color:'#8a97a8',precision:0},grid:{color:'#2a3342'}}}}});
+}
+
+$('analyze').onclick=analyze;
+$('data').addEventListener('input',()=>{clearTimeout(window._t);window._t=setTimeout(analyze,500);});
+$('lcl').addEventListener('input',analyze);
+$('ucl').addEventListener('input',analyze);
+$('machine').onchange=load; $('sku').onchange=load;
+$('clear').onclick=()=>{
+  localStorage.removeItem(key());
+  sheetRows=null; $('xl').value=''; $('colPickWrap').style.display='none';
+  $('lcl').value=''; $('ucl').value=''; $('data').value='';
+  window._res=null; analyze();
+};
+
+/* ---------- Excel upload ---------- */
+let sheetRows=null;
+$('xl').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    sheetRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+    if(!sheetRows.length){alert('Sheet is empty.');return;}
+    // build column list from header row (or Col A/B/...)
+    const header=sheetRows[0], sel=$('colPick'); sel.innerHTML='';
+    const cols=Math.max(...sheetRows.map(r=>r.length));
+    for(let c=0;c<cols;c++){
+      const name=(header[c]!==null&&isNaN(header[c]))?header[c]:'Column '+String.fromCharCode(65+c);
+      const numCount=sheetRows.filter(r=>typeof r[c]==='number').length;
+      const o=document.createElement('option');o.value=c;o.textContent=`${name} (${numCount} numeric)`;
+      sel.appendChild(o);
+    }
+    // auto-select column with most numeric values
+    let best=0,bestN=-1;
+    for(let c=0;c<cols;c++){const nn=sheetRows.filter(r=>typeof r[c]==='number').length;if(nn>bestN){bestN=nn;best=c;}}
+    sel.value=best; $('colPickWrap').style.display='block'; loadColumn();
+  };
+  rd.readAsArrayBuffer(file);
+});
+function loadColumn(){
+  const c=+$('colPick').value;
+  const vals=sheetRows.map(r=>r[c]).filter(v=>typeof v==='number'&&v>0);
+  $('data').value=vals.join('\n'); analyze();
+}
+$('colPick').onchange=loadColumn;
+
+/* ---------- PDF report (in-page print, no popup) ---------- */
+$('lotN').addEventListener('input',analyze);
+$('plant').onchange=load;
+$('pdf').onclick=()=>{
+  const r=window._res;
+  if(!r){alert('Analyze data first.');return;}
+  const f=(v,d=3)=>isNaN(v)?'\u2014':v.toFixed(d);
+  const cls=v=>isNaN(v)?'':v>=1.33?'ok':v>=1.0?'warn':'bad';
+  const verdict=isNaN(r.cpk)?'Spec limits not provided.':r.cpk>=1.33?'PROCESS CAPABLE (Cpk \u2265 1.33)':r.cpk>=1.0?'MARGINALLY CAPABLE (1.00 \u2264 Cpk < 1.33) \u2014 improvement recommended':'NOT CAPABLE (Cpk < 1.00) \u2014 corrective action required';
+  const g=window._reg;
+  const regBlock=!g?'<i>Lot size not provided \u2014 regulatory evaluation not performed.</i>':
+    `<div class="verdict ${g.pass?'ok':'bad'}">${g.pass?'\u2714 RELEASE THE LOT':'\u2716 HOLD / REJECT THE LOT'}</div>
+     <table><tr><th>Mode</th><th>SCF</th><th>Limit q<sub>nom</sub>\u2212SCF\u00b7s</th><th>e<sub>ave</sub>/s + SCF</th><th>T1 errors (TNE ${f(g.tne,1)} g)</th><th>Allowed T1</th></tr>
+     <tr><td>${g.mode}</td><td>${g.SCF!==undefined?f(g.SCF,2):'NA'}</td><td>${g.crit!==undefined?f(g.crit,3)+' g':'\u2014'}</td>
+     <td>${g.eave!==undefined?f(g.eave/r.sd+g.SCF,3):'\u2014'}</td><td>${g.t1}</td><td>${g.allowed}</td></tr></table>`;
+  const snap=cv=>{const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;
+    const g=c.getContext('2d');g.fillStyle='#161b23';g.fillRect(0,0,c.width,c.height);g.drawImage(cv,0,0);
+    return c.toDataURL('image/png');};
+  const iImg=snap($('ichart')), hImg=snap($('hist'));
+  const skuTxt=$('sku').options[$('sku').selectedIndex].text;
+  $('report').innerHTML=`
+  <h1>Process Capability & Lot Release Report \u2014 Detergent Powder Filling</h1>
+  <table class="meta"><tr>
+    <td><b>Plant:</b> ${$('plant').value}</td>
+    <td><b>Machine:</b> ${$('machine').value}</td>
+    <td><b>SKU:</b> ${skuTxt}</td>
+    <td><b>Date:</b> ${new Date().toLocaleDateString()}</td>
+  </tr><tr>
+    <td><b>LSL:</b> ${f(r.lsl,2)} g</td><td><b>USL:</b> ${f(r.usl,2)} g</td>
+    <td><b>Lot size N:</b> ${$('lotN').value||r.n+' (from data)'}</td><td><b>Sample n:</b> ${r.n}</td>
+  </tr></table>
+  <h2>Regulatory Lot Decision (Average System)</h2>${regBlock}
+  <h2>Process Capability</h2>
+  <div class="verdict ${cls(r.cpk)||'warn'}">${verdict}</div>
+  <table><tr><th>Cp</th><th>Cpk</th><th>Pp</th><th>Ppk</th><th>Out of spec</th><th>% OOS</th></tr>
+  <tr><td>${f(r.cp,2)}</td><td>${f(r.cpk,2)}</td><td>${f(r.pp,2)}</td><td>${f(r.ppk,2)}</td><td>${isNaN(r.lsl)?'\u2014':r.oos}</td><td>${isNaN(r.lsl)?'\u2014':f(100*r.oos/r.n,1)+'%'}</td></tr></table>
+  <h2>Descriptive Statistics</h2>
+  <table><tr><th>Mean (g)</th><th>Min</th><th>Max</th><th>Range</th><th>\u03c3 within</th><th>\u03c3 overall</th><th>Mean give-away</th></tr>
+  <tr><td>${f(r.mean,2)}</td><td>${f(r.min,2)}</td><td>${f(r.max,2)}</td><td>${f(r.max-r.min,2)}</td><td>${f(r.sigmaW,4)}</td><td>${f(r.sd,4)}</td><td>${f(r.mean-parseFloat($('sku').value),2)} g</td></tr></table>
+  <h2>Individuals Control Chart</h2><img src="${iImg}">
+  <h2>Weight Distribution, Normal Curve & Spec Limits</h2><img src="${hImg}">
+  <div class="foot">Cp/Cpk use within-subgroup sigma (moving range / 1.128); Pp/Ppk use overall SD. Lot decision: reject if e<sub>ave</sub>/s + SCF &lt; 0 (q<sub>ave</sub> &lt; q<sub>nom</sub> \u2212 SCF\u00b7s); T1 = units below q<sub>nom</sub> \u2212 TNE. Generated ${new Date().toLocaleString()}.</div>`;
+  document.body.classList.add('printing');
+  // wait for chart images to fully decode before opening print dialog
+  const imgs=[...$('report').querySelectorAll('img')];
+  Promise.all(imgs.map(im=>im.decode?im.decode().catch(()=>{}):Promise.resolve()))
+    .then(()=>setTimeout(()=>{
+      window.print();
+      setTimeout(()=>document.body.classList.remove('printing'),500);
+    },150));
+};
+
+load();
+</script>
+</body>
+</html>
