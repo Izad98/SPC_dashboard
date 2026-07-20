@@ -143,10 +143,14 @@ function load(){
   if(s){const o=JSON.parse(s);$('lcl').value=o.lcl||'';$('ucl').value=o.ucl||'';}
   else{$('lcl').value='';$('ucl').value='';}
   // readings always start fresh on selection change — never auto-filled
-  $('data').value=''; sheetRows=null; $('xl').value=''; $('colPickWrap').style.display='none';
+  $('data').value=''; sheetRows=null; memVals=null; $('xl').value=''; $('colPickWrap').style.display='none';
   analyze();
 }
-function parseData(){return $('data').value.split(/[\s,;]+/).map(Number).filter(v=>!isNaN(v)&&v>0);}
+let memVals=null; // full dataset for large uploads (textarea shows preview only)
+function parseData(){
+  if(memVals) return memVals;
+  return $('data').value.split(/[\s,;]+/).map(Number).filter(v=>!isNaN(v)&&v>0);
+}
 
 function analyze(){
   save();
@@ -348,14 +352,14 @@ function drawCharts(x,mean,sw,lsl,usl,sd){
 }
 
 $('analyze').onclick=analyze;
-$('data').addEventListener('input',()=>{clearTimeout(window._t);window._t=setTimeout(analyze,500);});
+$('data').addEventListener('input',()=>{memVals=null;clearTimeout(window._t);window._t=setTimeout(analyze,500);});
 $('lcl').addEventListener('input',analyze);
 $('ucl').addEventListener('input',analyze);
 $('exOut').addEventListener('change',analyze);
 $('machine').onchange=load; $('sku').onchange=load;
 $('clear').onclick=()=>{
   localStorage.removeItem(key());
-  sheetRows=null; $('xl').value=''; $('colPickWrap').style.display='none';
+  sheetRows=null; memVals=null; $('xl').value=''; $('colPickWrap').style.display='none';
   $('lcl').value=''; $('ucl').value=''; $('data').value='';
   window._res=null; analyze();
 };
@@ -369,6 +373,7 @@ const toNum=v=>{
 };
 $('xl').addEventListener('change',e=>{
   const file=e.target.files[0]; if(!file)return;
+  $('outInfo').innerHTML='<span class="warn">Loading file…</span>';
   const isCSV=/\.csv$/i.test(file.name)||file.type==='text/csv';
   const rd=new FileReader();
   rd.onload=ev=>{
@@ -379,7 +384,7 @@ $('xl').addEventListener('change',e=>{
         const delim=(txt.split(';').length>txt.split(',').length)?';':',';
         sheetRows=txt.split(/\r?\n/).filter(l=>l.trim()!=='').map(l=>l.split(delim).map(c=>c.trim()));
       }else{
-        const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+        const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellText:false,cellHTML:false});
         sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
       }
     }catch(err){alert('Could not read file: '+err.message);return;}
@@ -404,7 +409,15 @@ function loadColumn(){
   const c=+$('colPick').value;
   const vals=[];
   for(let i=0;i<sheetRows.length;i++){const v=toNum(sheetRows[i][c]);if(v!==null&&v>0)vals.push(v);}
-  $('data').value=vals.join('\n'); analyze();
+  if(vals.length>5000){
+    memVals=vals;
+    $('data').value=vals.slice(0,50).map(v=>v).join('\n')
+      +`\n… ${(vals.length-50).toLocaleString()} more readings loaded (total ${vals.length.toLocaleString()}) — held in memory for speed. Editing this box switches to manual data.`;
+  }else{
+    memVals=null;
+    $('data').value=vals.join('\n');
+  }
+  analyze();
 }
 $('colPick').onchange=loadColumn;
 
