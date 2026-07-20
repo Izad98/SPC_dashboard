@@ -127,6 +127,8 @@ td:first-child,th:first-child{text-align:left}
 <div id="report"></div>
 <script>
 const $=id=>document.getElementById(id);
+const amin=a=>{let m=Infinity;for(const v of a)if(v<m)m=v;return m;};
+const amax=a=>{let m=-Infinity;for(const v of a)if(v>m)m=v;return m;};
 let iChart,hChart;
 const key=()=> `spc:${$('plant').value}:${$('machine').value}:${$('sku').value}`;
 
@@ -158,7 +160,7 @@ function analyze(){
     pp=(usl-lsl)/(6*sd); ppk=Math.min((usl-mean)/(3*sd),(mean-lsl)/(3*sd));
     oos=x.filter(v=>v<lsl||v>usl).length;
   }
-  window._res={n,mean,sd,sigmaW,cp,cpk,pp,ppk,oos,lsl,usl,min:Math.min(...x),max:Math.max(...x)};
+  window._res={n,mean,sd,sigmaW,cp,cpk,pp,ppk,oos,lsl,usl,min:amin(x),max:amax(x)};
 
   /* ---- Regulatory decision (average system with SCF) ---- */
   const scfTable=[ // [maxN, sampleSize, SCF, allowedT1] ; NA row handled separately
@@ -233,7 +235,7 @@ function analyze(){
     <div class="kpi"><div class="v ${cls(pp)}">${f(pp,2)}</div><div class="l">Pp</div></div>
     <div class="kpi"><div class="v ${cls(ppk)}">${f(ppk,2)}</div><div class="l">Ppk</div></div>
     <div class="kpi"><div class="v ${oos?'bad':'ok'}">${hasSpec?oos:'—'}</div><div class="l">Out of spec</div></div>`;
-  const min=Math.min(...x),max=Math.max(...x);
+  const min=amin(x),max=amax(x);
   // Normal CDF + Minitab-style Z / PPM metrics
   const phi=z=>{const t=1/(1+0.2316419*Math.abs(z));const d=0.3989423*Math.exp(-z*z/2);
     let p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p;};
@@ -281,15 +283,19 @@ function analyze(){
 }
 
 function drawCharts(x,mean,sw,lsl,usl,sd){
-  const labels=x.map((_,i)=>i+1);
+  // downsample display for very large datasets (stats always use full data)
+  let xd=x, step=1;
+  if(x.length>2000){step=Math.ceil(x.length/2000);xd=x.filter((_,i)=>i%step===0);}
+  const labels=xd.map((_,i)=>i*step+1);
+  const big=x.length>500;
   const uclN=mean+3*sw, lclN=mean-3*sw;
   $('badge-n').textContent=x.length?`n=${x.length}`:'';
-  const ptColor=x.map(v=>(v>uclN||v<lclN||(!isNaN(usl)&&v>usl)||(!isNaN(lsl)&&v<lsl))?'#ef5b5b':'#4fd1c5');
+  const ptColor=xd.map(v=>(v>uclN||v<lclN||(!isNaN(usl)&&v>usl)||(!isNaN(lsl)&&v<lsl))?'#ef5b5b':'#4fd1c5');
   const line=(v,c,l)=>({label:l,data:labels.map(()=>v),borderColor:c,borderWidth:1,borderDash:[6,4],pointRadius:0,fill:false});
   if(iChart)iChart.destroy();
   iChart=new Chart($('ichart'),{type:'line',data:{labels,datasets:[
-    {label:'Weight',data:x,borderColor:'#4fd1c5',backgroundColor:ptColor,pointBackgroundColor:ptColor,pointRadius:4,borderWidth:1.5,tension:0},
-    ...(x.length?[line(mean,'#8a97a8','Mean'),line(uclN,'#f0b429','UCL(3σ)'),line(lclN,'#f0b429','LCL(3σ)')]:[]),
+    {label:'Weight',data:xd,borderColor:'#4fd1c5',backgroundColor:ptColor,pointBackgroundColor:ptColor,pointRadius:big?1.5:4,borderWidth:big?1:1.5,tension:0},
+    ...(xd.length?[line(mean,'#8a97a8','Mean'),line(uclN,'#f0b429','UCL(3σ)'),line(lclN,'#f0b429','LCL(3σ)')]:[]),
     ...(!isNaN(usl)?[line(usl,'#ef5b5b','USL')]:[]),
     ...(!isNaN(lsl)?[line(lsl,'#ef5b5b','LSL')]:[])
   ]},options:{plugins:{legend:{labels:{color:'#8a97a8',boxWidth:12,font:{size:10}}}},scales:{x:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}},y:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}}}}});
@@ -297,7 +303,7 @@ function drawCharts(x,mean,sw,lsl,usl,sd){
   if(hChart)hChart.destroy();
   if(!x.length){hChart=null;return;}
   // Minitab-style: linear x-axis, smooth Within (red) + Overall (dashed) curves, LSL/USL red dashed lines
-  const dataMin=Math.min(...x), dataMax=Math.max(...x);
+  const dataMin=amin(x), dataMax=amax(x);
   const span0=Math.min(dataMin,isNaN(lsl)?dataMin:lsl), span1=Math.max(dataMax,isNaN(usl)?dataMax:usl);
   const pad=(span1-span0)*0.08||1, lo=span0-pad, hi=span1+pad;
   const bins=Math.max(8,Math.min(25,Math.ceil(Math.sqrt(x.length)*1.5)));
@@ -306,7 +312,7 @@ function drawCharts(x,mean,sw,lsl,usl,sd){
   const bars=counts.map((c,i)=>({x:dataMin+w*(i+0.5),y:c}));
   const pdf=(v,s)=> s>0 ? x.length*w*Math.exp(-((v-mean)**2)/(2*s*s))/(s*Math.sqrt(2*Math.PI)) : 0;
   const curve=s=>{const pts=[];for(let i=0;i<=140;i++){const v=lo+(hi-lo)*i/140;pts.push({x:v,y:pdf(v,s)});}return pts;};
-  const peak=Math.max(...counts, pdf(mean,sw)||0, pdf(mean,sd)||0)*1.15;
+  const peak=Math.max(amax(counts), pdf(mean,sw)||0, pdf(mean,sd)||0)*1.15;
   const vline=(v,label)=>isNaN(v)?[]:[{label,data:[{x:v,y:0},{x:v,y:peak}],borderColor:'#ef5b5b',borderWidth:1.5,borderDash:[7,4],pointRadius:0,showLine:true,order:0}];
   hChart=new Chart($('hist'),{type:'scatter',data:{datasets:[
       {type:'bar',label:'Data',data:bars,backgroundColor:'rgba(138,151,168,.45)',borderColor:'#8a97a8',borderWidth:1,barThickness:'flex',categoryPercentage:1,barPercentage:1,order:3},
@@ -333,33 +339,48 @@ $('clear').onclick=()=>{
 
 /* ---------- Excel upload ---------- */
 let sheetRows=null;
+const toNum=v=>{
+  if(typeof v==='number')return v;
+  if(typeof v==='string'){const t=v.trim().replace(/,/g,'');const f=parseFloat(t);if(!isNaN(f)&&t!=='')return f;}
+  return null;
+};
 $('xl').addEventListener('change',e=>{
   const file=e.target.files[0]; if(!file)return;
+  const isCSV=/\.csv$/i.test(file.name)||file.type==='text/csv';
   const rd=new FileReader();
   rd.onload=ev=>{
-    const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    sheetRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-    if(!sheetRows.length){alert('Sheet is empty.');return;}
-    // build column list from header row (or Col A/B/...)
+    try{
+      if(isCSV){
+        // parse CSV as plain text — handles very large files reliably
+        const txt=ev.target.result;
+        const delim=(txt.split(';').length>txt.split(',').length)?';':',';
+        sheetRows=txt.split(/\r?\n/).filter(l=>l.trim()!=='').map(l=>l.split(delim).map(c=>c.trim()));
+      }else{
+        const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+        sheetRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:null});
+      }
+    }catch(err){alert('Could not read file: '+err.message);return;}
+    if(!sheetRows.length){alert('File is empty.');return;}
     const header=sheetRows[0], sel=$('colPick'); sel.innerHTML='';
     const cols=Math.max(...sheetRows.map(r=>r.length));
+    const numCounts=[];
     for(let c=0;c<cols;c++){
-      const name=(header[c]!==null&&isNaN(header[c]))?header[c]:'Column '+String.fromCharCode(65+c);
-      const numCount=sheetRows.filter(r=>typeof r[c]==='number').length;
-      const o=document.createElement('option');o.value=c;o.textContent=`${name} (${numCount} numeric)`;
+      let nn=0;for(let i=1;i<sheetRows.length;i++){if(toNum(sheetRows[i][c])!==null)nn++;}
+      numCounts[c]=nn;
+      const hv=header[c];
+      const name=(hv!==null&&hv!==''&&toNum(hv)===null)?hv:'Column '+String.fromCharCode(65+(c%26));
+      const o=document.createElement('option');o.value=c;o.textContent=`${name} (${nn} numeric)`;
       sel.appendChild(o);
     }
-    // auto-select column with most numeric values
-    let best=0,bestN=-1;
-    for(let c=0;c<cols;c++){const nn=sheetRows.filter(r=>typeof r[c]==='number').length;if(nn>bestN){bestN=nn;best=c;}}
-    sel.value=best; $('colPickWrap').style.display='block'; loadColumn();
+    sel.value=numCounts.indexOf(Math.max(...numCounts));
+    $('colPickWrap').style.display='block'; loadColumn();
   };
-  rd.readAsArrayBuffer(file);
+  isCSV?rd.readAsText(file):rd.readAsArrayBuffer(file);
 });
 function loadColumn(){
   const c=+$('colPick').value;
-  const vals=sheetRows.map(r=>r[c]).filter(v=>typeof v==='number'&&v>0);
+  const vals=[];
+  for(let i=0;i<sheetRows.length;i++){const v=toNum(sheetRows[i][c]);if(v!==null&&v>0)vals.push(v);}
   $('data').value=vals.join('\n'); analyze();
 }
 $('colPick').onchange=loadColumn;
