@@ -66,38 +66,29 @@ td:first-child,th:first-child{text-align:left}
 /* --- print report --- */
 #report{display:none}
 @media print{
-  @page{size:A4;margin:14mm 13mm}
   body.printing>*:not(#report){display:none!important}
   body.printing{background:#fff;padding:0}
-  body.printing #report{display:block;font:11.5px/1.5 'Segoe UI',Arial,sans-serif;color:#1a222c;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  #report h1{font-size:21px;border-bottom:3px solid #0e7c6f;padding-bottom:8px;margin-bottom:10px;text-transform:none;letter-spacing:0}
-  #report h1 small{display:block;font-size:11px;font-weight:400;color:#5c6b80;margin-top:4px;letter-spacing:0;text-transform:none}
-  #report h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#0e7c6f;margin:14px 0 6px;border-bottom:1px solid #dde3ea;padding-bottom:4px}
-  #report .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:0 26px;align-items:start}
-  #report table{border-collapse:collapse;width:100%;font-size:11px;font-family:'Segoe UI',Arial,sans-serif;margin-bottom:6px}
-  #report td,#report th{border:1px solid #cdd5df;padding:5px 8px;text-align:left;color:#1a222c}
-  #report th{background:#eef2f6;font-size:9.5px;text-transform:uppercase}
-  #report .meta{margin-bottom:6px}
-  #report .meta td{border:none;padding:2px 16px 2px 0;color:#4a5666;font-size:11px}
-  #report img{width:100%;border:1px solid #cdd5df;border-radius:5px;margin:4px 0 10px;max-height:210px;object-fit:contain;background:#fff}
-  #report .verdict{padding:9px 14px;border-radius:6px;font-weight:700;margin:6px 0;font-size:12.5px}
+  body.printing #report{display:block;font:12px/1.5 'Segoe UI',Arial,sans-serif;color:#1a222c;margin:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #report h1{font-size:19px;border-bottom:3px solid #0e7c6f;padding-bottom:6px;text-transform:none;letter-spacing:0}
+  #report h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#0e7c6f;margin:18px 0 6px}
+  #report table{border-collapse:collapse;width:100%;font-size:12px;font-family:'Segoe UI',Arial,sans-serif}
+  #report td,#report th{border:1px solid #cdd5df;padding:6px 10px;text-align:left;color:#1a222c}
+  #report th{background:#eef2f6}
+  #report .meta td{border:none;padding:2px 14px 2px 0;color:#4a5666}
+  #report img{width:100%;border:1px solid #cdd5df;border-radius:4px;margin:4px 0 10px}
+  #report .verdict{padding:10px 14px;border-radius:6px;font-weight:700;margin:10px 0}
   #report .ok{background:#e2f7ee;color:#0d6b45}#report .warn{background:#fdf3d7;color:#8a6210}#report .bad{background:#fde3e3;color:#a12525}
-  #report .kpirow{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-  #report .kpitile{flex:1;min-width:64px;border:1px solid #cdd5df;border-radius:6px;padding:6px 6px;text-align:center}
-  #report .kpitile .v{font-weight:700;font-size:16px;font-family:'Consolas',monospace}
-  #report .kpitile .l{font-size:8px;text-transform:uppercase;color:#7a8696;letter-spacing:.03em;margin-top:2px}
-  #report .insight-card{border:1px solid #cdd5df;border-left-width:4px;border-radius:5px;padding:7px 11px;margin-bottom:7px}
+  #report .insight-card{border:1px solid #cdd5df;border-left-width:4px;border-radius:4px;padding:8px 12px;margin-bottom:8px}
   #report .insight-card.ok{border-left-color:#0d6b45;background:#f3fbf7}
   #report .insight-card.warn{border-left-color:#8a6210;background:#fefbf1}
   #report .insight-card.bad{border-left-color:#a12525;background:#fdf5f5}
-  #report .insight-card .head{font-weight:700;font-size:11.5px;margin-bottom:3px}
-  #report .insight-card .pill{display:inline-block;font-size:8px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;font-weight:700;margin-right:6px}
+  #report .insight-card .head{font-weight:700;font-size:12px;margin-bottom:3px}
+  #report .insight-card .pill{display:inline-block;font-size:9px;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;border-radius:20px;font-weight:700;margin-right:6px}
   #report .insight-card.ok .pill{background:#0d6b45;color:#fff}
   #report .insight-card.warn .pill{background:#8a6210;color:#fff}
   #report .insight-card.bad .pill{background:#a12525;color:#fff}
-  #report .insight-card .desc{font-size:10.3px;color:#4a5666;line-height:1.4}
-  #report .note{font-size:10px;color:#7a8696;margin:3px 0 8px}
-  #report .foot{margin-top:12px;font-size:9px;color:#7a8696;border-top:1px solid #cdd5df;padding-top:6px}
+  #report .insight-card .desc{font-size:11px;color:#4a5666}
+  #report .foot{margin-top:22px;font-size:10px;color:#7a8696;border-top:1px solid #cdd5df;padding-top:8px}
 }
 </style>
 </head>
@@ -584,41 +575,33 @@ $('pdf').onclick=()=>{
   const o=window._out;
   const outLine=!o?'':o.count===0?'<i>No outliers detected (Tukey IQR method).</i>':
     `<b>${o.count} outlier${o.count>1?'s':''}</b> detected outside IQR fences [${o.loB.toFixed(2)} – ${o.hiB.toFixed(2)}] g — <b>${o.excluded?'EXCLUDED from this analysis':'INCLUDED in this analysis'}</b>.${o.values.length?' Values: '+o.values.map(v=>v.toFixed(1)).join(', ')+(o.count>15?' …':''):''}`;
-  const cardsHtml=(window._lastCards||[]).map(c=>`<div class="insight-card ${c.level}">
-    <div class="head"><span class="pill">${c.level==='ok'?'Healthy':c.level==='warn'?'Attention':'Action needed'}</span>${c.title}</div>
-    <div class="desc">${c.desc}</div>
-  </div>`).join('')||'<i>Not evaluated (insufficient data).</i>';
   $('report').innerHTML=`
-  <h1>Process Capability &amp; Lot Release Report<small>Detergent Powder Filling &nbsp;\u00b7&nbsp; Plant ${$('plant').value} &nbsp;\u00b7&nbsp; Machine ${$('machine').value} &nbsp;\u00b7&nbsp; SKU ${skuTxt} &nbsp;\u00b7&nbsp; ${new Date().toLocaleDateString()}</small></h1>
+  <h1>Process Capability &amp; Lot Release Report \u2014 Detergent Powder Filling</h1>
   <table class="meta"><tr>
+    <td><b>Plant:</b> ${$('plant').value}</td>
+    <td><b>Machine:</b> ${$('machine').value}</td>
+    <td><b>SKU:</b> ${skuTxt}</td>
+    <td><b>Date:</b> ${new Date().toLocaleDateString()}</td>
+  </tr><tr>
     <td><b>LSL:</b> ${f(r.lsl,2)} g</td><td><b>USL:</b> ${f(r.usl,2)} g</td>
     <td><b>Lot size N:</b> ${$('lotN').value||r.n+' (from data)'}</td><td><b>Sample n:</b> ${r.n}</td>
   </tr></table>
-  <div class="grid2">
-    <div>
-      <h2>Regulatory Lot Decision (Average System)</h2>${regBlock}
-      <h2>Process Capability</h2>
-      <div class="verdict ${cls(r.cpk)||'warn'}">${verdict}</div>
-      <div class="kpirow">
-        <div class="kpitile"><div class="v">${f(r.cp,2)}</div><div class="l">Cp</div></div>
-        <div class="kpitile"><div class="v">${f(r.cpk,2)}</div><div class="l">Cpk</div></div>
-        <div class="kpitile"><div class="v">${f(r.pp,2)}</div><div class="l">Pp</div></div>
-        <div class="kpitile"><div class="v">${f(r.ppk,2)}</div><div class="l">Ppk</div></div>
-        <div class="kpitile"><div class="v">${isNaN(r.lsl)?'\u2014':r.oos}</div><div class="l">Out of spec</div></div>
-        <div class="kpitile"><div class="v">${isNaN(r.lsl)?'\u2014':f(100*r.oos/r.n,1)+'%'}</div><div class="l">% OOS</div></div>
-      </div>
-      <h2>Descriptive Statistics</h2>
-      <table><tr><th>Mean (g)</th><th>Min</th><th>Max</th><th>Range</th><th>\u03c3 within</th><th>\u03c3 overall</th><th>Give-away</th></tr>
-      <tr><td>${f(r.mean,2)}</td><td>${f(r.min,2)}</td><td>${f(r.max,2)}</td><td>${f(r.max-r.min,2)}</td><td>${f(r.sigmaW,4)}</td><td>${f(r.sd,4)}</td><td>${f(r.mean-parseFloat($('sku').value),2)} g</td></tr></table>
-      <div class="note">${outLine||'Outlier screening not evaluated (insufficient data).'}</div>
-    </div>
-    <div>
-      <h2>Management Insight \u2014 Machine Health &amp; Recommended Action</h2>
-      ${cardsHtml}
-      <h2>Individuals Control Chart</h2><img src="${iImg}">
-      <h2>Weight Distribution vs Spec Limits</h2><img src="${hImg}">
-    </div>
-  </div>
+  <h2>Outlier Screening</h2><div>${outLine||'<i>Not evaluated (insufficient data).</i>'}</div>
+  <h2>Regulatory Lot Decision (Average System)</h2>${regBlock}
+  <h2>Process Capability</h2>
+  <div class="verdict ${cls(r.cpk)||'warn'}">${verdict}</div>
+  <table><tr><th>Cp</th><th>Cpk</th><th>Pp</th><th>Ppk</th><th>Out of spec</th><th>% OOS</th></tr>
+  <tr><td>${f(r.cp,2)}</td><td>${f(r.cpk,2)}</td><td>${f(r.pp,2)}</td><td>${f(r.ppk,2)}</td><td>${isNaN(r.lsl)?'\u2014':r.oos}</td><td>${isNaN(r.lsl)?'\u2014':f(100*r.oos/r.n,1)+'%'}</td></tr></table>
+  <h2>Descriptive Statistics</h2>
+  <table><tr><th>Mean (g)</th><th>Min</th><th>Max</th><th>Range</th><th>\u03c3 within</th><th>\u03c3 overall</th><th>Mean give-away</th></tr>
+  <tr><td>${f(r.mean,2)}</td><td>${f(r.min,2)}</td><td>${f(r.max,2)}</td><td>${f(r.max-r.min,2)}</td><td>${f(r.sigmaW,4)}</td><td>${f(r.sd,4)}</td><td>${f(r.mean-parseFloat($('sku').value),2)} g</td></tr></table>
+  <h2>Management Insight \u2014 Machine Health &amp; Recommended Action</h2>
+  ${(window._lastCards||[]).map(c=>`<div class="insight-card ${c.level}">
+    <div class="head"><span class="pill">${c.level==='ok'?'Healthy':c.level==='warn'?'Attention':'Action needed'}</span>${c.title}</div>
+    <div class="desc">${c.desc}</div>
+  </div>`).join('')||'<i>Not evaluated (insufficient data).</i>'}
+  <h2>Individuals Control Chart</h2><img src="${iImg}">
+  <h2>Weight Distribution, Normal Curve & Spec Limits</h2><img src="${hImg}">
   <div class="foot">Cp/Cpk use within-subgroup sigma (moving range / 1.128); Pp/Ppk use overall SD. Lot decision: reject if e<sub>ave</sub>/s + SCF &lt; 0 (q<sub>ave</sub> &lt; q<sub>nom</sub> \u2212 SCF\u00b7s); T1 = units below q<sub>nom</sub> \u2212 TNE. Generated ${new Date().toLocaleString()}.</div>`;
   document.body.classList.add('printing');
   // wait for chart images to fully decode before opening print dialog
