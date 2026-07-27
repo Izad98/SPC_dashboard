@@ -78,6 +78,16 @@ td:first-child,th:first-child{text-align:left}
   #report img{width:100%;border:1px solid #cdd5df;border-radius:4px;margin:4px 0 10px}
   #report .verdict{padding:10px 14px;border-radius:6px;font-weight:700;margin:10px 0}
   #report .ok{background:#e2f7ee;color:#0d6b45}#report .warn{background:#fdf3d7;color:#8a6210}#report .bad{background:#fde3e3;color:#a12525}
+  #report .insight-card{border:1px solid #cdd5df;border-left-width:4px;border-radius:4px;padding:8px 12px;margin-bottom:8px}
+  #report .insight-card.ok{border-left-color:#0d6b45;background:#f3fbf7}
+  #report .insight-card.warn{border-left-color:#8a6210;background:#fefbf1}
+  #report .insight-card.bad{border-left-color:#a12525;background:#fdf5f5}
+  #report .insight-card .head{font-weight:700;font-size:12px;margin-bottom:3px}
+  #report .insight-card .pill{display:inline-block;font-size:9px;text-transform:uppercase;letter-spacing:.05em;padding:1px 7px;border-radius:20px;font-weight:700;margin-right:6px}
+  #report .insight-card.ok .pill{background:#0d6b45;color:#fff}
+  #report .insight-card.warn .pill{background:#8a6210;color:#fff}
+  #report .insight-card.bad .pill{background:#a12525;color:#fff}
+  #report .insight-card .desc{font-size:11px;color:#4a5666}
   #report .foot{margin-top:22px;font-size:10px;color:#7a8696;border-top:1px solid #cdd5df;padding-top:8px}
 }
 </style>
@@ -410,6 +420,7 @@ function renderInsights(x,mean,sw,sd,lsl,usl,cp,cpk,pp,ppk,oos,hasSpec){
 
   if(!cards.length)cards.push({level:'ok',title:'No issues detected',desc:'Process readings look stable and within expected variation.'});
 
+  window._lastCards=cards;
   box.innerHTML=cards.map(c=>`<div class="insight">
       <div class="head"><span class="pill ${c.level}">${c.level==='ok'?'Healthy':c.level==='warn'?'Attention':'Action needed'}</span>${c.title}</div>
       <div class="desc">${c.desc}</div>
@@ -584,6 +595,11 @@ $('pdf').onclick=()=>{
   <h2>Descriptive Statistics</h2>
   <table><tr><th>Mean (g)</th><th>Min</th><th>Max</th><th>Range</th><th>\u03c3 within</th><th>\u03c3 overall</th><th>Mean give-away</th></tr>
   <tr><td>${f(r.mean,2)}</td><td>${f(r.min,2)}</td><td>${f(r.max,2)}</td><td>${f(r.max-r.min,2)}</td><td>${f(r.sigmaW,4)}</td><td>${f(r.sd,4)}</td><td>${f(r.mean-parseFloat($('sku').value),2)} g</td></tr></table>
+  <h2>Management Insight — Machine Health &amp; Recommended Action</h2>
+  ${(window._lastCards||[]).map(c=>`<div class="insight-card ${c.level}">
+    <div class="head"><span class="pill">${c.level==='ok'?'Healthy':c.level==='warn'?'Attention':'Action needed'}</span>${c.title}</div>
+    <div class="desc">${c.desc}</div>
+  </div>`).join('')||'<i>Not evaluated (insufficient data).</i>'}
   <h2>Individuals Control Chart</h2><img src="${iImg}">
   <h2>Weight Distribution, Normal Curve & Spec Limits</h2><img src="${hImg}">
   <div class="foot">Cp/Cpk use within-subgroup sigma (moving range / 1.128); Pp/Ppk use overall SD. Lot decision: reject if e<sub>ave</sub>/s + SCF &lt; 0 (q<sub>ave</sub> &lt; q<sub>nom</sub> \u2212 SCF\u00b7s); T1 = units below q<sub>nom</sub> \u2212 TNE. Generated ${new Date().toLocaleString()}.</div>`;
