@@ -11,15 +11,26 @@
   --bg:#0e1116; --panel:#161b23; --panel2:#1c2330; --line:#2a3342;
   --ink:#e8edf4; --dim:#8a97a8; --accent:#4fd1c5; --amber:#f0b429;
   --red:#ef5b5b; --green:#3ecf8e; --mono:'JetBrains Mono','SFMono-Regular',Consolas,monospace;
+  --shadow:0 2px 10px rgba(0,0,0,.25);
+}
+:root[data-theme="light"]{
+  --bg:#f2f5f9; --panel:#ffffff; --panel2:#eef1f6; --line:#d7dee8;
+  --ink:#1a222c; --dim:#5c6b80; --accent:#0e9488; --amber:#b3760a;
+  --red:#c93b3b; --green:#1f9d63; --shadow:0 2px 10px rgba(30,41,59,.08);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font:14px/1.5 'Segoe UI',system-ui,sans-serif;padding:20px}
-h1{font-size:18px;letter-spacing:.04em;text-transform:uppercase}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 'Segoe UI',system-ui,sans-serif;padding:20px;transition:background .25s,color .25s}
+h1{font-size:18px;letter-spacing:.04em;text-transform:uppercase;display:inline-block}
 h1 span{color:var(--accent)}
+.topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+#themeToggle{width:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:6px;font-size:16px;box-shadow:var(--shadow)}
+#themeToggle:hover{border-color:var(--accent)}
 .sub{color:var(--dim);font-size:12px;margin-bottom:18px}
+footer{margin-top:28px;text-align:center;color:var(--dim);font-size:12px;padding:16px 0 6px;border-top:1px solid var(--line)}
+footer b{color:var(--accent)}
 .grid{display:grid;grid-template-columns:290px 1fr;gap:16px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;box-shadow:var(--shadow)}
 label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:12px 0 4px}
 select,input,textarea,button{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:8px 10px;font-size:13px}
 input:focus,select:focus,textarea:focus{outline:1px solid var(--accent)}
@@ -30,13 +41,21 @@ button{cursor:pointer;font-weight:600}
 .btn-ghost{background:transparent;margin-top:8px;color:var(--dim)}
 .btn-ghost:hover{color:var(--red);border-color:var(--red)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
+.kpi:hover{transform:translateY(-2px);border-color:var(--accent)}
 .kpi .v{font-family:var(--mono);font-size:22px;font-weight:700}
 .kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
 .ok{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
 .charts{display:grid;gap:16px}
-.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
 .chart-box h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:8px}
+.insight{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--panel2)}
+.insight .head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.insight .desc{color:var(--dim);font-size:12px;margin-top:4px}
+.pill{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:20px;font-weight:700}
+.pill.ok{background:rgba(62,207,142,.15);color:var(--green)}
+.pill.warn{background:rgba(240,180,41,.15);color:var(--amber)}
+.pill.bad{background:rgba(239,91,91,.18);color:var(--red)}
 .badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid var(--line);margin-left:8px}
 .note{font-size:12px;color:var(--dim);margin-top:10px}
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:8px}
@@ -64,7 +83,10 @@ td:first-child,th:first-child{text-align:left}
 </style>
 </head>
 <body>
-<h1>Filling Line <span>Capability</span> Dashboard</h1>
+<div class="topbar">
+  <h1>Filling Line <span>Capability</span> Dashboard</h1>
+  <button id="themeToggle" title="Toggle light / dark mode"><span id="themeIcon">🌙</span><span id="themeLabel">Dark</span></button>
+</div>
 <div class="sub">Detergent powder filling — SPC / Cp·Cpk analysis · data saved in browser (localStorage)</div>
 
 <div class="grid">
@@ -121,13 +143,26 @@ td:first-child,th:first-child{text-align:left}
       <div class="chart-box"><h3>Weight distribution vs spec limits</h3><canvas id="hist" height="110"></canvas></div>
       <div class="chart-box"><h3>Regulatory lot decision (average system, SCF)</h3><div id="reg"></div></div>
       <div class="chart-box"><h3>Statistics</h3><div id="stats"></div></div>
+      <div class="chart-box"><h3>Management insight — machine health & recommended action</h3><div id="insights"></div></div>
     </div>
   </div>
 </div>
 
+<footer>Made in Sri Lanka with❤️ - (C) Mohamed Izad</footer>
+
 <div id="report"></div>
 <script>
 const $=id=>document.getElementById(id);
+/* ---------- theme toggle ---------- */
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  $('themeIcon').textContent=t==='light'?'☀️':'🌙';
+  $('themeLabel').textContent=t==='light'?'Light':'Dark';
+  localStorage.setItem('spc:theme',t);
+  if(window._res)setTimeout(()=>analyze(),50); // redraw charts with theme-correct colors
+}
+$('themeToggle').onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+applyTheme(localStorage.getItem('spc:theme')||'dark');
 const amin=a=>{let m=Infinity;for(const v of a)if(v<m)m=v;return m;};
 const amax=a=>{let m=-Infinity;for(const v of a)if(v>m)m=v;return m;};
 let iChart,hChart;
@@ -161,7 +196,7 @@ function analyze(){
   const lsl=parseFloat($('lcl').value), usl=parseFloat($('ucl').value);
   if(!$('plant').value||!$('machine').value||!$('sku').value){
     $('kpis').innerHTML='<div class="kpi"><div class="v">—</div><div class="l">Select plant, filling line & SKU</div></div>';
-    $('stats').innerHTML='';$('reg').innerHTML='';$('outInfo').innerHTML='';
+    $('stats').innerHTML='';$('reg').innerHTML='';$('outInfo').innerHTML='';$('insights').innerHTML='';
     drawCharts([],NaN,NaN,NaN,NaN,NaN);return;
   }
   /* ---- Outlier detection (Tukey IQR method) ---- */
@@ -180,7 +215,7 @@ function analyze(){
     } else $('outInfo').innerHTML='<span class="ok">✓ No outliers detected (IQR method)</span>';
   } else $('outInfo').innerHTML='';
   const kp=$('kpis'), st=$('stats');
-  if(x.length<2){kp.innerHTML='<div class="kpi"><div class="v">—</div><div class="l">Enter at least 2 readings</div></div>';st.innerHTML='';$('reg').innerHTML='';$('scfShow').value='';drawCharts([],NaN,NaN,NaN,NaN,NaN);return;}
+  if(x.length<2){kp.innerHTML='<div class="kpi"><div class="v">—</div><div class="l">Enter at least 2 readings</div></div>';st.innerHTML='';$('reg').innerHTML='';$('scfShow').value='';$('insights').innerHTML='';drawCharts([],NaN,NaN,NaN,NaN,NaN);return;}
   const n=x.length, mean=x.reduce((a,b)=>a+b)/n;
   const sd=Math.sqrt(x.reduce((a,b)=>a+(b-mean)**2,0)/(n-1));
   // moving range for within-subgroup sigma
@@ -314,9 +349,75 @@ function analyze(){
     <tr><td>Est. mean give-away vs target</td><td>${f(mean-parseFloat($('sku').value),2)} g</td><td>% out of spec</td><td>${hasSpec?f(100*oos/n,1)+'%':'—'}</td></tr>
   </table>${ppmRows}<div class="note ${cls(cpk)}">${verdict}</div>`;
   drawCharts(x,mean,sigmaW,lsl,usl,sd);
+  renderInsights(x,mean,sigmaW,sd,lsl,usl,cp,cpk,pp,ppk,oos,hasSpec);
+}
+
+/* ---------- Management insight engine ---------- */
+function renderInsights(x,mean,sw,sd,lsl,usl,cp,cpk,pp,ppk,oos,hasSpec){
+  const box=$('insights');
+  if(x.length<2){box.innerHTML='<div class="note">Load readings to generate a machine health recommendation.</div>';return;}
+  const uclN=mean+3*sw, lclN=mean-3*sw;
+  const beyond3s=x.filter(v=>v>uclN||v<lclN).length;
+  // longest run of consecutive points on one side of the mean (Nelson rule 2 style, threshold 7)
+  let run=1,maxRun=1;
+  for(let i=1;i<x.length;i++){
+    const same=(x[i]-mean>=0)===(x[i-1]-mean>=0);
+    run=same?run+1:1; if(run>maxRun)maxRun=run;
+  }
+  const longRun=maxRun>=7;
+  const oosPct=hasSpec?100*oos/x.length:null;
+  const outCount=(window._out&&window._out.count)||0;
+  const outPct=100*outCount/x.length;
+  const cards=[];
+
+  // 1. Capability / centering
+  if(hasSpec){
+    if(cpk<1.0||(oosPct!==null&&oosPct>5)){
+      cards.push({level:'bad',title:'Consider repair or overhaul',
+        desc:`Cpk ${cpk.toFixed(2)} and ${oosPct.toFixed(1)}% out-of-spec indicate the machine cannot reliably hold tolerance. Variation and/or centering are beyond routine adjustment — schedule mechanical inspection (filling head, load cell calibration, auger/piston wear).`});
+    } else if(cpk<1.33){
+      cards.push({level:'warn',title:'Manual validation recommended',
+        desc:`Cpk ${cpk.toFixed(2)} is marginal (1.00–1.33). Process is capable but with little margin — pull a manual verification sample before the next shift and monitor for drift.`});
+    } else {
+      cards.push({level:'ok',title:'Machine healthy — routine monitoring',
+        desc:`Cpk ${cpk.toFixed(2)} ≥ 1.33 with ${oosPct.toFixed(1)}% out-of-spec. No corrective action needed; continue standard SPC checks.`});
+    }
+    // Pp vs Cpk gap => overall variation much worse than within -> possible intermittent/mechanical fault
+    if(!isNaN(ppk)&&!isNaN(cpk)&&(cpk-ppk)>0.3){
+      cards.push({level:'warn',title:'Investigate intermittent variation',
+        desc:`Ppk (${ppk.toFixed(2)}) is notably lower than Cpk (${cpk.toFixed(2)}) — overall spread is much wider than short-term variation, suggesting shift-to-shift drift, setup changes, or an intermittent mechanical fault rather than steady random noise.`});
+    }
+  } else {
+    cards.push({level:'warn',title:'Spec limits not set',
+      desc:'Enter LSL/USL to unlock capability-based repair/replace guidance.'});
+  }
+
+  // 2. Stability (special-cause signals)
+  if(beyond3s>0){
+    cards.push({level:'bad',title:'Special-cause variation detected',
+      desc:`${beyond3s} reading${beyond3s>1?'s':''} beyond the 3σ control limits (I-chart). This points to an assignable cause (e.g. jam, sensor fault, operator error) rather than normal process noise — investigate before the next run.`});
+  } else if(longRun){
+    cards.push({level:'warn',title:'Process trending / shifting',
+      desc:`${maxRun} consecutive readings on one side of the mean — a non-random pattern suggesting a slow drift (wear, temperature, material change). Recommend recalibration check.`});
+  }
+
+  // 3. Outliers / measurement integrity
+  if(outPct>10){
+    cards.push({level:'warn',title:'High outlier rate — check data integrity',
+      desc:`${outCount} of ${x.length} readings (${outPct.toFixed(1)}%) flagged as statistical outliers. Verify scale calibration and data entry before trusting the capability indices above.`});
+  }
+
+  if(!cards.length)cards.push({level:'ok',title:'No issues detected',desc:'Process readings look stable and within expected variation.'});
+
+  box.innerHTML=cards.map(c=>`<div class="insight">
+      <div class="head"><span class="pill ${c.level}">${c.level==='ok'?'Healthy':c.level==='warn'?'Attention':'Action needed'}</span>${c.title}</div>
+      <div class="desc">${c.desc}</div>
+    </div>`).join('');
 }
 
 function drawCharts(x,mean,sw,lsl,usl,sd){
+  const cs=getComputedStyle(document.documentElement);
+  const dimC=cs.getPropertyValue('--dim').trim()||'#8a97a8', lineC=cs.getPropertyValue('--line').trim()||'#2a3342', inkC=cs.getPropertyValue('--ink').trim()||'#e8edf4';
   // downsample display for very large datasets (stats always use full data)
   let xd=x, step=1;
   if(x.length>2000){step=Math.ceil(x.length/2000);xd=x.filter((_,i)=>i%step===0);}
@@ -329,10 +430,10 @@ function drawCharts(x,mean,sw,lsl,usl,sd){
   if(iChart)iChart.destroy();
   iChart=new Chart($('ichart'),{type:'line',data:{labels,datasets:[
     {label:'Weight',data:xd,borderColor:'#4fd1c5',backgroundColor:ptColor,pointBackgroundColor:ptColor,pointRadius:big?1.5:4,borderWidth:big?1:1.5,tension:0},
-    ...(xd.length?[line(mean,'#8a97a8','Mean'),line(uclN,'#f0b429','UCL(3σ)'),line(lclN,'#f0b429','LCL(3σ)')]:[]),
+    ...(xd.length?[line(mean,dimC,'Mean'),line(uclN,'#f0b429','UCL(3σ)'),line(lclN,'#f0b429','LCL(3σ)')]:[]),
     ...(!isNaN(usl)?[line(usl,'#ef5b5b','USL')]:[]),
     ...(!isNaN(lsl)?[line(lsl,'#ef5b5b','LSL')]:[])
-  ]},options:{plugins:{legend:{labels:{color:'#8a97a8',boxWidth:12,font:{size:10}}}},scales:{x:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}},y:{ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}}}}});
+  ]},options:{plugins:{legend:{labels:{color:dimC,boxWidth:12,font:{size:10}}}},scales:{x:{ticks:{color:dimC},grid:{color:lineC}},y:{ticks:{color:dimC},grid:{color:lineC}}}}});
   // histogram
   if(hChart)hChart.destroy();
   if(!x.length){hChart=null;return;}
@@ -349,14 +450,14 @@ function drawCharts(x,mean,sw,lsl,usl,sd){
   const peak=Math.max(amax(counts), pdf(mean,sw)||0, pdf(mean,sd)||0)*1.15;
   const vline=(v,label)=>isNaN(v)?[]:[{label,data:[{x:v,y:0},{x:v,y:peak}],borderColor:'#ef5b5b',borderWidth:1.5,borderDash:[7,4],pointRadius:0,showLine:true,order:0}];
   hChart=new Chart($('hist'),{type:'scatter',data:{datasets:[
-      {type:'bar',label:'Data',data:bars,backgroundColor:'rgba(138,151,168,.45)',borderColor:'#8a97a8',borderWidth:1,barThickness:'flex',categoryPercentage:1,barPercentage:1,order:3},
+      {type:'bar',label:'Data',data:bars,backgroundColor:'rgba(138,151,168,.45)',borderColor:dimC,borderWidth:1,barThickness:'flex',categoryPercentage:1,barPercentage:1,order:3},
       {label:'Within',data:curve(sw),borderColor:'#ef5b5b',borderWidth:2,pointRadius:0,showLine:true,tension:0.3,order:1},
-      {label:'Overall',data:curve(sd),borderColor:'#e8edf4',borderWidth:2,borderDash:[8,5],pointRadius:0,showLine:true,tension:0.3,order:2},
+      {label:'Overall',data:curve(sd),borderColor:inkC,borderWidth:2,borderDash:[8,5],pointRadius:0,showLine:true,tension:0.3,order:2},
       ...vline(lsl,'LSL'),...vline(usl,'USL')
     ]},
-    options:{plugins:{legend:{labels:{color:'#8a97a8',boxWidth:14,font:{size:10},filter:i=>['Within','Overall','LSL','USL'].includes(i.text)}}},
-      scales:{x:{type:'linear',min:lo,max:hi,ticks:{color:'#8a97a8'},grid:{color:'#2a3342'}},
-              y:{min:0,ticks:{color:'#8a97a8',precision:0},grid:{color:'#2a3342'}}}}});
+    options:{plugins:{legend:{labels:{color:dimC,boxWidth:14,font:{size:10},filter:i=>['Within','Overall','LSL','USL'].includes(i.text)}}},
+      scales:{x:{type:'linear',min:lo,max:hi,ticks:{color:dimC},grid:{color:lineC}},
+              y:{min:0,ticks:{color:dimC,precision:0},grid:{color:lineC}}}}});
 }
 
 $('analyze').onclick=analyze;
