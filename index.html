@@ -148,7 +148,7 @@ td:first-child,th:first-child{text-align:left}
   </div>
 </div>
 
-<footer>Made in Sri Lanka with❤️ - (C) Mohamed Izad</footer>
+<footer>Made in Sri Lanka with❤️ - © Mohamed Izad</footer>
 
 <div id="report"></div>
 <script>
@@ -348,6 +348,7 @@ function analyze(){
     <tr><td>σ within (MR/1.128)</td><td>${f(sigmaW,4)}</td><td>σ overall</td><td>${f(sd,4)}</td></tr>
     <tr><td>Est. mean give-away vs target</td><td>${f(mean-parseFloat($('sku').value),2)} g</td><td>% out of spec</td><td>${hasSpec?f(100*oos/n,1)+'%':'—'}</td></tr>
   </table>${ppmRows}<div class="note ${cls(cpk)}">${verdict}</div>`;
+  window._lastX=x; window._lastArgs=[mean,sigmaW,lsl,usl,sd];
   drawCharts(x,mean,sigmaW,lsl,usl,sd);
   renderInsights(x,mean,sigmaW,sd,lsl,usl,cp,cpk,pp,ppk,oos,hasSpec);
 }
@@ -546,9 +547,19 @@ $('pdf').onclick=()=>{
      <tr><td>${g.mode}</td><td>${g.SCF!==undefined?f(g.SCF,2):'NA'}</td><td>${g.crit!==undefined?f(g.crit,3)+' g':'\u2014'}</td>
      <td>${g.eave!==undefined?f(g.eave/r.sd+g.SCF,3):'\u2014'}</td><td>${g.t1}</td><td>${g.allowed}</td></tr></table>`;
   const snap=cv=>{const c=document.createElement('canvas');c.width=cv.width;c.height=cv.height;
-    const g=c.getContext('2d');g.fillStyle='#161b23';g.fillRect(0,0,c.width,c.height);g.drawImage(cv,0,0);
+    const g=c.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);g.drawImage(cv,0,0);
     return c.toDataURL('image/png');};
+  // report charts always render in light colors on white, regardless of the app's current theme
+  const curTheme=document.documentElement.getAttribute('data-theme');
+  if(curTheme!=='light'&&window._lastX&&window._lastArgs){
+    document.documentElement.setAttribute('data-theme','light');
+    drawCharts(window._lastX,...window._lastArgs);
+  }
   const iImg=snap($('ichart')), hImg=snap($('hist'));
+  if(curTheme!=='light'&&window._lastX&&window._lastArgs){
+    document.documentElement.setAttribute('data-theme',curTheme);
+    drawCharts(window._lastX,...window._lastArgs);
+  }
   const skuTxt=$('sku').options[$('sku').selectedIndex].text;
   const o=window._out;
   const outLine=!o?'':o.count===0?'<i>No outliers detected (Tukey IQR method).</i>':
